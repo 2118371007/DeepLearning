@@ -1,0 +1,18 @@
+# 忽略 PyCharm 的配置
+.idea/
+
+# 忽略 Python 运行缓存
+__pycache__/
+*.pyc
+
+# 忽略数据集（建议数据集手动下载，不要传到代码仓库）
+data/
+
+# 忽略模型权重文件（通常很大，不适合存 Git）
+*.pth
+*.pt
+*.checkpoint
+
+# 忽略系统日志和临时文件
+*.log
+.DS_Store
