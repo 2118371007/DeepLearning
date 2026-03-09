@@ -42,6 +42,7 @@ def dm02():
 	# 关闭坐标轴
 	plt.axis("off")
 	plt.show()
+	plt.imsave("./data/img_copy.jpg", img)
 
 
 if __name__ == '__main__':
