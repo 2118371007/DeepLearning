@@ -7,9 +7,19 @@ ANN的实现步骤：
 	2. 搭建神经网络
 	3. 模型训练
 	4. 模型测试
+	
+	
+优化思路：
+	1. 优化器 SGD -> Adam
+	2. 学习率改的更小
+	3. 对数据进行标准化
+	4. 增加网路的深度
+	5. 调整训练的轮数
+	……
 """
 
 import torch
+from sklearn.preprocessing import StandardScaler
 from torch.utils.data import TensorDataset  # 数据集对象  数据 -> tensor -> 数据集 -> 数据加载器
 from torch.utils.data import DataLoader  # 数据加载器
 import torch.nn as nn
@@ -44,9 +54,17 @@ def create_dataset():
 	# 参5：样本的分布(即参考y的类别进行数据抽取)，确保训练集和测试集中各个价格的比例和原数据一致，防止训练时全部都是贵手机而影响模型训练
 	x_train, x_test, y_train, y_test = train_test_split(x, y, test_size = 0.2, random_state = 3, stratify = y)
 	
+	# 优化1：把数据标准化
+	# 创建一个标准正态分布归一化的执行器
+	transfer = StandardScaler()
+	# 计算训练值的平均值和标准差并且转换为nd数组
+	x_train = transfer.fit_transform(x_train)
+	# 测试集直接转为nd数组
+	x_test = transfer.transform(x_test)
+	
 	# 1.5把数据转为张量数据集     数据->张量->数据集->数据加载器
-	train_dataset = TensorDataset(torch.tensor(x_train.values), torch.tensor(y_train.values))
-	test_dataset = TensorDataset(torch.tensor(x_test.values), torch.tensor(y_test.values))
+	train_dataset = TensorDataset(torch.tensor(x_train), torch.tensor(y_train.values))
+	test_dataset = TensorDataset(torch.tensor(x_test), torch.tensor(y_test.values))
 	
 	# 1.6返回结果
 	# 		训练集         测试集         输入特征数(有多少列就有多少个特征)           输出标签数
@@ -63,8 +81,15 @@ class PhonePriceModel(nn.Module):
 		self.linear1 = nn.Linear(input_dim, 128)
 		# 隐藏层2
 		self.linear2 = nn.Linear(128, 256)
+		# 隐藏层3
+		self.linear3 = nn.Linear(256, 512)
+		# 隐藏层4
+		self.linear4 = nn.Linear(512, 256)
 		# 输出层
 		self.output = nn.Linear(256, output_dim)
+		
+		# 添加一个dropout层，防止模型过拟合
+		self.dropout = nn.Dropout(0.1)
 	
 	# 前向传播
 	def forward(self, x):
@@ -72,6 +97,12 @@ class PhonePriceModel(nn.Module):
 		x = torch.relu(self.linear1(x))
 		# 隐藏层2：加权求和 + 激活函数(relu)
 		x = torch.relu(self.linear2(x))
+		# 隐藏层3：加权求和 + 激活函数(relu)
+		x = torch.relu(self.linear3(x))
+		# 隐藏层4：加权求和 + 激活函数(relu)
+		x = torch.relu(self.linear4(x))
+		# 在最深层添加一个dropout层，防止模型过拟合
+		x = self.dropout(x)
 		# 输出层：加权求和，本来应该用softmax()激活函数做激活函数
 		# 但是后面直接用多分类交叉熵CrossEntropyLoss()
 		# CrossEntropyLoss() = softmax() + 损失计算
@@ -90,7 +121,9 @@ def train(train_dataset, input_dim, output_dim):
 	# 定义损失函数
 	criterion = nn.CrossEntropyLoss()
 	# 定义优化器
-	optimizer = optim.SGD(model.parameters(), lr = 0.001)
+	# optimizer = optim.SGD(model.parameters(), lr = 0.001)
+	# 使用Adam优化器，并且使用更小的学习率
+	optimizer = optim.Adam(model.parameters(), lr = 0.0001)
 	# 开始训练
 	# 定义变量存储训练轮数
 	epochs = 50
@@ -158,7 +191,7 @@ def evaluate(test_dataset, input_dim, output_dim):
 if __name__ == '__main__':
 	# 准备数据集
 	train_dataset, test_dataset, input_dim, output_dim = create_dataset()
-	# train(train_dataset, input_dim, output_dim)
+	train(train_dataset, input_dim, output_dim)
 	# 构建网络模型
 	# model = PhonePriceModel(input_dim, output_dim)
 	# 计算模型参数    
